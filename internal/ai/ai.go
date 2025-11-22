@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"smartcommit/internal/config"
+	"github.com/arpxspace/smartcommit/internal/config"
 
 	"github.com/invopop/jsonschema"
 	"github.com/openai/openai-go"

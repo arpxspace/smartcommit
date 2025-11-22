@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"smartcommit/internal/tui"
+	"github.com/arpxspace/smartcommit/internal/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

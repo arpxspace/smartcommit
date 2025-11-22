@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"smartcommit/internal/ai"
-	"smartcommit/internal/config"
-	"smartcommit/internal/git"
+	"github.com/arpxspace/smartcommit/internal/ai"
+	"github.com/arpxspace/smartcommit/internal/config"
+	"github.com/arpxspace/smartcommit/internal/git"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"

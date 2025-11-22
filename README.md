@@ -1,6 +1,6 @@
-# smartcommit 
+# smartcommit
 
-**smartcommit** self documents your code by being an intelligent, AI-powered CLI tool that helps you write semantic, Conventional Commits messages effortlessly. It analyzes your staged changes, asks clarifying questions to understand the "why" behind your code, and generates a structured commit message for you. 
+**smartcommit** is an intelligent, AI-powered CLI tool that helps you write semantic, Conventional Commits messages effortlessly. It analyzes your staged changes, asks clarifying questions to understand the "why" behind your code, and generates a structured commit message for you.
 
 Future you will thank you for deciding to use `smartcommit`!
 
@@ -38,7 +38,7 @@ go install https://github.com/arpxspace/smartcommit@latest
 
 2.  Build the binary:
     ```bash
-    go build -o smartcommit ./cmd/smartcommit
+    go build -o smartcommit
     ```
 
 3.  Move to your PATH (optional):

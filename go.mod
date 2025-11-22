@@ -1,4 +1,4 @@
-module smartcommit
+module github.com/arpxspace/smartcommit
 
 go 1.25.0
 
