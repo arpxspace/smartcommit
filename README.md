@@ -25,7 +25,7 @@ Future you will thank you for deciding to use `smartcommit`!
 -   *(Optional)* **Ollama** installed locally if you plan to use the local model.
 
 ```bash
-go install https://github.com/arpxspace/smartcommit@latest
+go install github.com/arpxspace/smartcommit@latest
 ```
 
 ### Build from Source
