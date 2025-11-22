@@ -46,23 +46,22 @@ go install https://github.com/arpxspace/smartcommit@latest
     mv smartcommit /usr/local/bin/
     ```
 
-### ⚡️ Post-Install Setup
+### Use instead of `git commit`
 
 To use `smartcommit` as your default `git commit` command, run:
 
 ```bash
-git config --global alias.commit '!smartcommit'
+git config --global alias.ci '!smartcommit'
 ```
 
 Or for this repository only:
 
 ```bash
-git config alias.commit '!smartcommit'
+git config alias.ci '!smartcommit'
 ```
 
 **Usage:**
-- To commit with SmartCommit: `git commit`
-- To use original git commit: `git commit --no-verify` (or `\git commit`)
+- To commit with smartcommit: `git ci`
 
 ## 🚀 Usage
 
@@ -71,7 +70,7 @@ git config alias.commit '!smartcommit'
     git add .
     ```
 
-2.  **Run SmartCommit**:
+2.  **Run smartcommit**:
     ```bash
     smartcommit
     ```
@@ -87,11 +86,11 @@ If you already know what you want to write, you can select **"I already know wha
 
 ## ⚙️ Configuration
 
-SmartCommit stores its configuration in a local file (usually `~/.smartcommit/config.json`).
+smartcommit stores its configuration in a local file (usually `~/.smartcommit/config.json`).
 
 ### Environment Variables
 
--   `OPENAI_API_KEY`: If set, SmartCommit can detect this during setup and ask if you want to use it, saving you from pasting it manually.
+-   `OPENAI_API_KEY`: If set, smartcommit can detect this during setup and ask if you want to use it, saving you from pasting it manually.
 
 ## 🤝 Contributing
 
