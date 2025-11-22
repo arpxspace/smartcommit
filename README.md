@@ -4,7 +4,7 @@
 
 Future you will thank you for deciding to use `smartcommit`!
 
-![smartcommit Demo](https://placehold.co/600x400?text=smartcommit+Demo+Placeholder)
+![smartcommit Demo](./demo.gif)
 
 ## Features
 
