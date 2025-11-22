@@ -31,6 +31,7 @@ const (
 	StateSetup
 	StateNoRepo
 	StateWelcome
+	StateDiffTooLarge
 )
 
 type SetupStep int
@@ -109,7 +110,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "q":
-			if m.State != StateQuestioning && m.State != StateReview && m.State != StateSetup && m.State != StateWelcome {
+			if m.State != StateQuestioning && m.State != StateReview && m.State != StateSetup && m.State != StateWelcome && m.State != StateDiffTooLarge {
 				return m, tea.Quit
 			}
 		}
@@ -120,6 +121,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		m.Err = msg
 		m.State = StateError
+		return m, nil
+	case diffTooLargeMsg:
+		m.State = StateDiffTooLarge
 		return m, nil
 	case prerequisitesCheckedMsg:
 		m.Config = msg.Config
@@ -163,6 +167,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Handle state-specific updates
 	switch m.State {
+	case StateDiffTooLarge:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "m", "enter":
+				// Manual Mode
+				m.CommitMsg = ""
+				m.State = StateCommit
+				return m, commitCmd(m.CommitMsg)
+			case "q", "ctrl+c":
+				return m, tea.Quit
+			}
+		}
 	case StateWelcome:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -331,6 +348,18 @@ func (m Model) View() string {
 	switch m.State {
 	case StateLoading:
 		return fmt.Sprintf("\n %s Checking prerequisites...\n\n", m.Spinner.View())
+	case StateDiffTooLarge:
+		return fmt.Sprintf(`
+ %s
+
+ The staged changes are too large for AI analysis.
+ (> 40k characters)
+
+ You can:
+ 1. Press 'm' or Enter to write the commit message manually.
+ 2. Press 'q' to quit and stage fewer changes.
+
+`, errorStyle.Render("Warning: Large Diff Detected"))
 	case StateWelcome:
 		providerInfo := ""
 		if m.Config != nil {
@@ -438,6 +467,8 @@ func (m Model) View() string {
 
 type errMsg error
 
+type diffTooLargeMsg struct{}
+
 type prerequisitesCheckedMsg struct {
 	Config  *config.Config
 	Diff    string
@@ -449,6 +480,20 @@ type setupRequiredMsg struct {
 }
 
 type noRepoMsg struct{}
+
+type historyAnalysisResultMsg struct {
+	KeyContext []string
+}
+
+type analysisResultMsg struct {
+	Questions []string
+}
+
+type commitMsgGeneratedMsg struct {
+	Message string
+}
+
+type commitSuccessMsg struct{}
 
 func checkPrerequisitesCmd() tea.Msg {
 	cfg, err := config.Load()
@@ -494,7 +539,7 @@ func checkPrerequisitesCmd() tea.Msg {
 
 	// Warn if diff is too large (approx 12k chars ~ 3-4k tokens)
 	if len(diff) > 40000 { // ~10k tokens, safety limit
-		return errMsg(fmt.Errorf("staged changes are too large (%d chars). Please stage fewer changes", len(diff)))
+		return diffTooLargeMsg{}
 	}
 
 	history, err := git.GetRecentHistory(10) // Get last 10 commits
@@ -509,10 +554,6 @@ func checkPrerequisitesCmd() tea.Msg {
 	}
 }
 
-type historyAnalysisResultMsg struct {
-	KeyContext []string
-}
-
 func analyzeHistoryCmd(client ai.Provider, diff, history string) tea.Cmd {
 	return func() tea.Msg {
 		analysis, err := client.AnalyzeHistory(context.Background(), diff, history)
@@ -523,10 +564,6 @@ func analyzeHistoryCmd(client ai.Provider, diff, history string) tea.Cmd {
 	}
 }
 
-type analysisResultMsg struct {
-	Questions []string
-}
-
 func analyzeChangesCmd(client ai.Provider, diff, history string) tea.Cmd {
 	return func() tea.Msg {
 		questions, err := client.GenerateQuestions(context.Background(), diff, history)
@@ -535,10 +572,6 @@ func analyzeChangesCmd(client ai.Provider, diff, history string) tea.Cmd {
 		}
 		return analysisResultMsg{Questions: questions}
 	}
-}
-
-type commitMsgGeneratedMsg struct {
-	Message string
 }
 
 func generateCommitMsgCmd(client ai.Provider, diff, history string, historyCtx []string, answers map[string]string) tea.Cmd {
@@ -555,8 +588,6 @@ func generateCommitMsgCmd(client ai.Provider, diff, history string, historyCtx [
 		return commitMsgGeneratedMsg{Message: msg}
 	}
 }
-
-type commitSuccessMsg struct{}
 
 func commitCmd(msg string) tea.Cmd {
 	c := git.CommitCmd(msg)
