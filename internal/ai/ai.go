@@ -62,18 +62,23 @@ func NewOpenAIClient(apiKey string) *OpenAIClient {
 }
 
 type QuestionsResponse struct {
-	Questions []string `json:"questions" jsonschema_description:"A list of 3 short, specific questions to ask the user to clarify the intent and context of the changes."`
+	Questions []string `json:"questions" jsonschema_description:"A list of 3 short, specific questions to ask the user to clarify the intent and 'why' behind the changes."`
 }
 
 // Generate the JSON schema at initialization time
 var QuestionsResponseSchema = GenerateSchema[QuestionsResponse]()
 
 func (c *OpenAIClient) GenerateQuestions(ctx context.Context, diff string, history string) ([]string, error) {
-	systemPrompt := `You are an expert software developer assisting a user in writing a commit message.
+	systemPrompt := `
+You are an expert software developer assisting a user in writing a commit message.
 Your goal is to understand the "why" behind the changes.
 Analyze the provided git diff and recent project history.
-Generate 3 short, specific questions to ask the user to clarify the intent and context of the changes.
-The questions should focus on the "why" and "how" if it's not obvious.`
+Generate 3 short, specific questions to ask the user to clarify the intent and 'why' behind the changes.
+The questions should focus on the "why" and "how" if it's not obvious. Try to look at the changes holistically and
+not get fixated on irrelevant changes that aren't worth getting clarification from.
+(Example: "Why did you decide to comment out the line regarding array initialization")
+
+`
 
 	userPrompt := fmt.Sprintf("Diff:\n%s\n\nRecent History:\n%s", diff, history)
 
@@ -118,11 +123,65 @@ type CommitMessageResponse struct {
 var CommitMessageResponseSchema = GenerateSchema[CommitMessageResponse]()
 
 func (c *OpenAIClient) GenerateCommitMessage(ctx context.Context, diff string, history string, answers map[string]string) (string, error) {
-	systemPrompt := `You are an expert software developer.
+	systemPrompt := `
+You are an expert software developer.
 Generate a commit message following the Conventional Commits specification.
 Use the provided diff, recent project history, and user answers to context questions.
-The commit message should have a clear subject line and a detailed body explaining the "what" and "why".
-Ensure the tone is professional and consistent with the project history.`
+The commit message should have a clear subject line and a detailed body explaining the "why" only.
+Try to paint a narrative (using the history of the project inline with the recent changes), rather than a prescriptive description.
+Think of the signal:noise ratio. You want the reader of the commit to truly understand the 'why' behind the changes.
+Ensure the tone is professional and consistent with the project history.
+
+DO NOT:
+- Describe what's in the diff
+- Use marketing language
+- Be verbose
+
+Examples:
+1. Comprehensive commit message
+fix: convert template to US-ASCII to fix error
+While working on a feature branch, I added test coverage for
+'/etc/nginx/router_routes.conf'. Running 'bundle exec rake spec' or
+'bundle exec rspec modules/router/spec' worked perfectly, but executing
+'bundle exec rake' caused every test block to fail with:
+
+    ArgumentError:
+      invalid byte sequence in US-ASCII
+
+After some investigation, I discovered that deleting the '.with_content(//)'
+matchers eliminated the failures. The spec file itself appeared clean - no
+visible unusual characters. I could trigger the same issue by loading Puppet
+in the interpreter:
+
+    rake -E 'require "puppet"' spec
+
+Turns out this specific template was uniquely encoded in our repository.
+Everything else was 'us-ascii':
+
+    $ find modules -type f -exec file --mime {} \+ | grep utf
+    modules/router/templates/routes.conf.erb:                          text/plain; charset=utf-8
+
+To pinpoint the problematic byte, I attempted a conversion to US-ASCII, which
+revealed what appeared to be invisible whitespace:
+
+    $ iconv -f UTF8 -t US-ASCII modules/router/templates/routes.conf.erb 2>&1 | tail -n5
+    proxy_intercept_errors off;
+
+    # Set proxy timeout to 50 seconds as a quick fix for problems
+
+    iconv: modules/router/templates/routes.conf.erb:458:3: cannot convert
+
+Once I manually corrected it, the encoding returned to 'US-ASCII':
+
+    $ file --mime modules/router/templates/routes.conf.erb
+    modules/router/templates/routes.conf.erb: text/plain; charset=us-ascii
+
+2. Smaller commit message
+feat(database): semantic similarity matching of chosen personalisation role against user query
+This commit introduces a role-based access control feature using embedding similarity into the database interaction layers. It establishes a system where user roles, extracted from a newly created Database module, are utilized to determine access and personalize responses based on cosine similarity of embeddings between user roles and their input queries.
+
+These changes address the need for a more personalized AI interaction by closely aligning the query processing with user-specific role information. This ensures that responses are tailored to what users would expect based on their data access rights, reducing unnecessary agent calls to data sources that users do not have access to, thus improving system efficiency and user satisfaction.
+`
 
 	qaPairs := ""
 	for q, a := range answers {
