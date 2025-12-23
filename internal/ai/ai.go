@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/arpxspace/smartcommit/internal/config"
 
@@ -183,12 +184,13 @@ This commit introduces a role-based access control feature using embedding simil
 These changes address the need for a more personalized AI interaction by closely aligning the query processing with user-specific role information. This ensures that responses are tailored to what users would expect based on their data access rights, reducing unnecessary agent calls to data sources that users do not have access to, thus improving system efficiency and user satisfaction.
 `
 
-	qaPairs := ""
+	// Use strings.Builder for efficient string concatenation
+	var qaPairs strings.Builder
 	for q, a := range answers {
-		qaPairs += fmt.Sprintf("Q: %s\nA: %s\n", q, a)
+		fmt.Fprintf(&qaPairs, "Q: %s\nA: %s\n", q, a)
 	}
 
-	userPrompt := fmt.Sprintf("Diff:\n%s\n\nRecent History:\n%s\n\nUser Context:\n%s", diff, history, qaPairs)
+	userPrompt := fmt.Sprintf("Diff:\n%s\n\nRecent History:\n%s\n\nUser Context:\n%s", diff, history, qaPairs.String())
 
 	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        "commit_message_response",
@@ -280,13 +282,14 @@ type OllamaClient struct {
 
 func NewOllamaClient(baseURL, model string) *OllamaClient {
 	// Ensure BaseURL ends with /v1/ for OpenAI compatibility
-	// Simple heuristic: if it doesn't contain /v1, append it.
-	// This handles the default "http://localhost:11434" -> "http://localhost:11434/v1/"
-	if baseURL != "" && baseURL[len(baseURL)-1] != '/' {
-		baseURL += "/"
-	}
-	if len(baseURL) < 3 || baseURL[len(baseURL)-3:] != "v1/" {
-		baseURL += "v1/"
+	// Optimize URL building with strings.HasSuffix
+	if baseURL != "" {
+		if !strings.HasSuffix(baseURL, "/") {
+			baseURL += "/"
+		}
+		if !strings.HasSuffix(baseURL, "v1/") {
+			baseURL += "v1/"
+		}
 	}
 
 	client := openai.NewClient(
@@ -377,12 +380,13 @@ Template:
 
 <body>`
 
-	qaPairs := ""
+	// Use strings.Builder for efficient string concatenation
+	var qaPairs strings.Builder
 	for q, a := range answers {
-		qaPairs += fmt.Sprintf("Q: %s\nA: %s\n", q, a)
+		fmt.Fprintf(&qaPairs, "Q: %s\nA: %s\n", q, a)
 	}
 
-	userPrompt := fmt.Sprintf("Diff:\n%s\n\nRecent History:\n%s\n\nUser Context:\n%s", diff, history, qaPairs)
+	userPrompt := fmt.Sprintf("Diff:\n%s\n\nRecent History:\n%s\n\nUser Context:\n%s", diff, history, qaPairs.String())
 
 	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        "commit_message_response",
