@@ -18,6 +18,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const (
+	// AI operation timeout constants
+	aiAnalysisTimeout      = 60 * time.Second // Timeout for history and change analysis
+	aiCommitGenTimeout     = 90 * time.Second // Timeout for commit message generation (longer as it's more complex)
+)
+
 type SessionState int
 
 const (
@@ -558,7 +564,7 @@ func checkPrerequisitesCmd() tea.Msg {
 func analyzeHistoryCmd(client ai.Provider, diff, history string) tea.Cmd {
 	return func() tea.Msg {
 		// Add timeout to prevent hanging indefinitely
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), aiAnalysisTimeout)
 		defer cancel()
 		
 		analysis, err := client.AnalyzeHistory(ctx, diff, history)
@@ -572,7 +578,7 @@ func analyzeHistoryCmd(client ai.Provider, diff, history string) tea.Cmd {
 func analyzeChangesCmd(client ai.Provider, diff, history string) tea.Cmd {
 	return func() tea.Msg {
 		// Add timeout to prevent hanging indefinitely
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), aiAnalysisTimeout)
 		defer cancel()
 		
 		questions, err := client.GenerateQuestions(ctx, diff, history)
@@ -594,7 +600,7 @@ func generateCommitMsgCmd(client ai.Provider, diff, history string, historyCtx [
 		}
 
 		// Add timeout to prevent hanging indefinitely
-		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), aiCommitGenTimeout)
 		defer cancel()
 
 		msg, err := client.GenerateCommitMessage(ctx, diff, fullHistoryContext.String(), answers)

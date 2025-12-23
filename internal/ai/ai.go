@@ -287,6 +287,7 @@ func NewOllamaClient(baseURL, model string) *OllamaClient {
 		if !strings.HasSuffix(baseURL, "/") {
 			baseURL += "/"
 		}
+		// Only add v1/ if the URL doesn't already end with it
 		if !strings.HasSuffix(baseURL, "v1/") {
 			baseURL += "v1/"
 		}
