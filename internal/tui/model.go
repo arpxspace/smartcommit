@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/arpxspace/smartcommit/internal/ai"
 	"github.com/arpxspace/smartcommit/internal/config"
@@ -15,6 +16,12 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+)
+
+const (
+	// AI operation timeout constants
+	aiAnalysisTimeout      = 60 * time.Second // Timeout for history and change analysis
+	aiCommitGenTimeout     = 90 * time.Second // Timeout for commit message generation (longer as it's more complex)
 )
 
 type SessionState int
@@ -556,7 +563,11 @@ func checkPrerequisitesCmd() tea.Msg {
 
 func analyzeHistoryCmd(client ai.Provider, diff, history string) tea.Cmd {
 	return func() tea.Msg {
-		analysis, err := client.AnalyzeHistory(context.Background(), diff, history)
+		// Add timeout to prevent hanging indefinitely
+		ctx, cancel := context.WithTimeout(context.Background(), aiAnalysisTimeout)
+		defer cancel()
+
+		analysis, err := client.AnalyzeHistory(ctx, diff, history)
 		if err != nil {
 			return errMsg(err)
 		}
@@ -566,7 +577,11 @@ func analyzeHistoryCmd(client ai.Provider, diff, history string) tea.Cmd {
 
 func analyzeChangesCmd(client ai.Provider, diff, history string) tea.Cmd {
 	return func() tea.Msg {
-		questions, err := client.GenerateQuestions(context.Background(), diff, history)
+		// Add timeout to prevent hanging indefinitely
+		ctx, cancel := context.WithTimeout(context.Background(), aiAnalysisTimeout)
+		defer cancel()
+
+		questions, err := client.GenerateQuestions(ctx, diff, history)
 		if err != nil {
 			return errMsg(err)
 		}
@@ -576,12 +591,19 @@ func analyzeChangesCmd(client ai.Provider, diff, history string) tea.Cmd {
 
 func generateCommitMsgCmd(client ai.Provider, diff, history string, historyCtx []string, answers map[string]string) tea.Cmd {
 	return func() tea.Msg {
-		fullHistoryContext := history
+		// Use strings.Builder for efficient string concatenation
+		var fullHistoryContext strings.Builder
+		fullHistoryContext.WriteString(history)
 		if len(historyCtx) > 0 {
-			fullHistoryContext += "\n\nKey Context from History:\n- " + strings.Join(historyCtx, "\n- ")
+			fullHistoryContext.WriteString("\n\nKey Context from History:\n- ")
+			fullHistoryContext.WriteString(strings.Join(historyCtx, "\n- "))
 		}
 
-		msg, err := client.GenerateCommitMessage(context.Background(), diff, fullHistoryContext, answers)
+		// Add timeout to prevent hanging indefinitely
+		ctx, cancel := context.WithTimeout(context.Background(), aiCommitGenTimeout)
+		defer cancel()
+
+		msg, err := client.GenerateCommitMessage(ctx, diff, fullHistoryContext.String(), answers)
 		if err != nil {
 			return errMsg(err)
 		}
