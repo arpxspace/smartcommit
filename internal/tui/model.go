@@ -566,7 +566,7 @@ func analyzeHistoryCmd(client ai.Provider, diff, history string) tea.Cmd {
 		// Add timeout to prevent hanging indefinitely
 		ctx, cancel := context.WithTimeout(context.Background(), aiAnalysisTimeout)
 		defer cancel()
-		
+
 		analysis, err := client.AnalyzeHistory(ctx, diff, history)
 		if err != nil {
 			return errMsg(err)
@@ -580,7 +580,7 @@ func analyzeChangesCmd(client ai.Provider, diff, history string) tea.Cmd {
 		// Add timeout to prevent hanging indefinitely
 		ctx, cancel := context.WithTimeout(context.Background(), aiAnalysisTimeout)
 		defer cancel()
-		
+
 		questions, err := client.GenerateQuestions(ctx, diff, history)
 		if err != nil {
 			return errMsg(err)
